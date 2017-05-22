@@ -3,6 +3,7 @@ A mini project to demonstrate Spark - HBase integration for data ingestion and a
 Development Stack: Scala 2.10.4 Spark 1.6 HBase 1.2 CDH 5.10.1
 
 Problem Statement 1
+
 Normalize and Ingest monthly historical weather station data from NCDC archive into a data store of your choice:
 Global monthly summary data: https://www.ncei.noaa.gov/data/gsom/archive/gsom_latest.tar.gz 
 Documentation: https://www1.ncdc.noaa.gov/pub/data/cdo/documentation/gsom-gsoy_documentation.pdf 
@@ -27,9 +28,38 @@ actual weather data (we have chosen to pick average temperature and precipitatio
 store in HBase. Also, during the process of ingesting the data, the "Season" for each record will be calculated and stored
 to make the subsequent implementaions easier.
 
-The relevant HBase Commands are given below.
+The relevant HDFS, HBase and UNIX Commands are given below.
+hadoop fs -mkdir avgSeasonalTemp
+hadoop fs -put gsom-latest.tar.gz avgSeasonalTemp/
+hadoop fs -put ghcnd-stations.txt avgSeasonalTemp/
+hadoop fs -put ghcnd-countries.txt avgSeasonalTemp/
+
+create 'SEASONAL_TEMP',
+  { NAME => 'ID_DETAILS', VERSIONS => 1, COMPRESSION => 'SNAPPY', DATA_BLOCK_ENCODING => 'FAST_DIFF'},
+  { NAME => 'WEATHER_DATA', VERSIONS => 1, COMPRESSION => 'SNAPPY', DATA_BLOCK_ENCODING => 'FAST_DIFF'}
+
+HFiles created by Spark will create the following columns (Qualifiers):
+ID_DETAILS: MONTH, STATION_CODE, YEAR
+WEATHER_DATA: AVG_TEMP, PRECIPITATION, SEASON
+
+create 'STATIONS',
+  { NAME => 'STATION_DETAILS', VERSIONS => 1, COMPRESSION => 'SNAPPY', DATA_BLOCK_ENCODING => 'FAST_DIFF'}
+
+HFiles created by Spark will create the following columns (Qualifiers):
+STATION_DETAILS:COUNTRY, COUNTRY_CD, ELEVATION, GSN, HCN_CRN, ID, LATTITUDE, LONGITUDE, STATE, STATION_NAME, WMO_ID 
+
+hbase org.apache.hadoop.hbase.mapreduce.LoadIncrementalHFiles -Dcreate.table=no hdfs://quickstart.cloudera:8020/user/cloudera/avgSeasonalTemp/hbase SEASONAL_TEMP
+
+HFiles created by Spark will create the following columns (Qualifiers):
+STATION_DETAILS:COUNTRY, COUNTRY_CD, ELEVATION, GSN, HCN_CRN, ID, LATTITUDE, LONGITUDE, STATE, STATION_NAME, WMO_ID   
+
+hbase org.apache.hadoop.hbase.mapreduce.LoadIncrementalHFiles -Dcreate.table=no hdfs://quickstart.cloudera:8020/user/cloudera/avgSeasonalTemp/stations STATIONS
+
+service hbase-master status
+service hbase-regionserver
 
 Problem Statement 2
+
 Calculate and store average seasonal temperature per year for all years after 1900 for each 1°x1° grid on Geographic Coordinate System. 
 For the sake of this problem, assume that spring covers March, April and May; summer covers June, July and August; fall covers September, 
 October and November; and winter covers December, January and February. Details of the implementation are left up to you. 
@@ -53,4 +83,13 @@ For the grouped data, we calculate the average temperature, number of data point
 
 A HFiles are created for the final summary data and stored on HDFS. These HFiles are loaded into HBase using the following command.
 Please note that the -D argument had to be added to allow loading of more than 32 files at a time.
+
+create 'SUMMARY',
+  { NAME => 'SUMMARY_DETAILS', VERSIONS => 1, COMPRESSION => 'SNAPPY', DATA_BLOCK_ENCODING => 'FAST_DIFF'}
+
+HFiles created by Spark will create the following columns (Qualifiers):
+AVG_TEMP, DATA_POINTS, LATTITUDE, LONGITUDE, SEASON, STATIONS_LIST, YEAR
+
+hbase org.apache.hadoop.hbase.mapreduce.LoadIncrementalHFiles -Dcreate.table=no -Dhbase.mapreduce.bulkload.max.hfiles.perRegion.perFamily=1000 hdfs://quickstart.cloudera:8020/user/cloudera/avgSeasonalTemp/summary SUMMARY
+
 
