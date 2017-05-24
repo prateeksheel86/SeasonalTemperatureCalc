@@ -1,5 +1,6 @@
 package com.sb.miniproject.rest_api;
 
+import java.io.Serializable;
 import java.util.List;
 
 import javax.xml.bind.annotation.XmlElementWrapper;
@@ -13,7 +14,12 @@ import javax.xml.bind.annotation.XmlType;
  */
 @XmlRootElement(name = "geoTempData")
 @XmlType(propOrder = { "lattitude", "longitude", "dataList"})
-public class GeoTempData {
+public class GeoTempData implements Serializable{
+	
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -2670333285815826515L;
 	
 	private String lattitude;
 	private String longitude;
