@@ -123,6 +123,20 @@ ghcnd-countries.txt file. Since the file containing the entries is rather small,
 ingestion part for the Stations and the Country name is mapped to the Station data. The countries data is read from the file, transformed
 into a Map and broadcast to all worker nodes.
 
+Problem Statement 6
+
+Define a metric that represents change in global temperature and/or precipitation over time, and visualize it on a heatmap.
+
+Solution
+For the purpose of this problem, no specific metric has been defined. As a simple proof of concept, the average temperature is
+used to create a Heat Map in Tableau for a specific lattitude and longitude. To easily integrate Tableau with the Hadoop data, 
+the data stored in HBase is accessed via Hive. An external Hive table is created which maps each field to the corresponding field
+in HBase. The commands for creating the Hive table is given below.
+
 CREATE EXTERNAL TABLE hbase_summary(key string, latitude string, longitude string, year string, season string, avg_temp string, data_points string, stations string) STORED BY 'org.apache.hadoop.hive.hbase.HBaseStorageHandler' WITH SERDEPROPERTIES ("hbase.columns.mapping" = ":key,SUMMARY_DETAILS:LATTITUDE, SUMMARY_DETAILS:LONGITUDE,SUMMARY_DETAILS:YEAR, SUMMARY_DETAILS:SEASON, SUMMARY_DETAILS:AVG_TEMP, SUMMARY_DETAILS:DATA_POINTS, SUMMARY_DETAILS:STATIONS_LIST") TBLPROPERTIES ("hbase.table.name" = "SUMMARY");
 
+The Hive table is exported to a CSV file (only sample data) by using the following command:
+
 INSERT OVERWRITE LOCAL DIRECTORY '/home/cloudera/MiniProject/' ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' SELECT * FROM hbase_summary;
+
+The generated CSV file is used to create the visualization as depicted in Temp HeatMap File.
