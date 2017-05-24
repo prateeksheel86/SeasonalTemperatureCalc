@@ -122,3 +122,7 @@ The first two characters in the code for each Station denote the country they be
 ghcnd-countries.txt file. Since the file containing the entries is rather small, it is added as a broadcast variable during the data
 ingestion part for the Stations and the Country name is mapped to the Station data. The countries data is read from the file, transformed
 into a Map and broadcast to all worker nodes.
+
+CREATE EXTERNAL TABLE hbase_summary(key string, latitude string, longitude string, year string, season string, avg_temp string, data_points string, stations string) STORED BY 'org.apache.hadoop.hive.hbase.HBaseStorageHandler' WITH SERDEPROPERTIES ("hbase.columns.mapping" = ":key,SUMMARY_DETAILS:LATTITUDE, SUMMARY_DETAILS:LONGITUDE,SUMMARY_DETAILS:YEAR, SUMMARY_DETAILS:SEASON, SUMMARY_DETAILS:AVG_TEMP, SUMMARY_DETAILS:DATA_POINTS, SUMMARY_DETAILS:STATIONS_LIST") TBLPROPERTIES ("hbase.table.name" = "SUMMARY");
+
+INSERT OVERWRITE LOCAL DIRECTORY '/home/cloudera/MiniProject/' ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' SELECT * FROM hbase_summary;
