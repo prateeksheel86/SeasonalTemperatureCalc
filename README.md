@@ -66,8 +66,7 @@ October and November; and winter covers December, January and February. Details 
 Sparsity of the data should be taken into account in your solution (i.e. store the number of available datapoints for each grid cell).
 
 Solution
-The earth could be imagined as a rectangle on the coordinate system with bottom left vertex at (-90,-180) and the top right vertex at (90,180)
-The gist of the problem is to attribute station data (tied to its coordinates) to a generic block of 1 degree by 1 degree.
+The earth could be imagined as a rectangle on the coordinate system with bottom left vertex at (-90,-180) and the top right vertex at (90,180). The gist of the problem is to attribute station data (tied to its coordinates) to a generic block of 1 degree by 1 degree.
 For the purpose of this solution, we have assumed that if any station lies within 100 Sq. Km. (+ or - 0.5 degrees) of the coordinate, 
 then it's data is validfor that particular coordinate point. So, for each coordinate point, we will consider all stations which are 
 within -0.5 degrees of its lattitude or longitude. Therefore, the round() function could be used to determine which coordinate point
@@ -92,4 +91,34 @@ AVG_TEMP, DATA_POINTS, LATTITUDE, LONGITUDE, SEASON, STATIONS_LIST, YEAR
 
 hbase org.apache.hadoop.hbase.mapreduce.LoadIncrementalHFiles -Dcreate.table=no -Dhbase.mapreduce.bulkload.max.hfiles.perRegion.perFamily=1000 hdfs://quickstart.cloudera:8020/user/cloudera/avgSeasonalTemp/summary SUMMARY
 
+Problem Statement 3
 
+Develop a simple REST endpoint that accepts a coordinate (lat, lon) and will serve the following information:
+Average seasonal temperature for each season and year where data is available
+List of weather stations and number of available datapoints (i.e. non-null temperature entries) for each season and year where data is available
+
+Solution
+A REST Service with an endpoint which accepts two path paramters to specify the input coordinates has been implemented in GeoTempService.java (method name getDataForCoordinate). The method leverages the design from the solution of the second problem statement.
+The data for each LATITUDE, LONGITUDE, YEAR and SEASON is available in the SUMMARY HBase table. The RESTFul method retrieve the data
+by querying HBase and applying two filters for the LATITUDE and LONGITUDE values. The data is served in JSON format.
+
+Problem Statement 4
+
+Develop an endpoint for your API that accepts 2 sets of coordinates (lat1, lon1, lat2, lon2) and 2 integers (startYear and endYear) as parameters to serve average temperature and available datapoints similar to above. The data should be averaged over the ‘rectangular’ area defined by supplied coordinates (lat1, lon1) and (lat2, lon2). Data should also be averaged over startYear-endYear range .
+
+Solution
+A GET Method named getDataForArea is implemented in the GeoTempService. This method takes six inputs as per the problem statement.
+The solution involves querying HBase and applying filters similar to Problem Statement 3. The most important part of the design is to
+divide and add idividual values instead of calculating the sum and dividing. This is to avoid overflow in case there are too many values
+and the sum exceed what can be stored in a Java Integer variable. The integer parts and the decimal parts are added separately for all 
+average values and the final average is calculated by summing up the individual parts at the end.
+
+Problem Statement 5
+
+Identify the country of each weather station, where applicable. You may use some publicly available API or come up with your own heuristic.
+
+Solution
+The first two characters in the code for each Station denote the country they belong to. The country data is available in the 
+ghcnd-countries.txt file. Since the file containing the entries is rather small, it is added as a broadcast variable during the data
+ingestion part for the Stations and the Country name is mapped to the Station data. The countries data is read from the file, transformed
+into a Map and broadcast to all worker nodes.
